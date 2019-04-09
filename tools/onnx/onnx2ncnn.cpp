@@ -144,7 +144,37 @@ static onnx::TensorProto get_node_attr_tensor(const onnx::NodeProto& node, const
         const onnx::AttributeProto& attr = node.attribute(i);
         if (attr.name() == key)
         {
-            return attr.t();
+            //return attr.t();
+            onnx::TensorProto t= attr.t();
+            if(t.has_raw_data()){
+                const std::string& raw_data=t.raw_data();
+                int element_size=8;
+                if(   t.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT64
+                   || t.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT64
+                   )
+                    element_size=8;
+                else if (t.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_FLOAT
+                      || t.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_INT32
+                      || t.data_type() == onnx::TensorProto_DataType::TensorProto_DataType_UINT32
+                ) {
+                    element_size = 4;
+                }
+                int dim = raw_data.length()/element_size;
+                for (int j=0; j<dim; j++) {
+                    if(t.data_type() == 7) //int64
+                    {
+                        const int64_t*  ptr = (const int64_t *) raw_data.c_str();
+                        auto elm = ptr[j];
+                        t.add_int64_data(elm);
+                    }
+                    else if (t.data_type() ==1) {
+                        const float*  ptr = (const float*) raw_data.c_str();
+                        auto elm = ptr[j];
+                        t.add_float_data(elm);
+                    }
+                }
+            }
+            return t;
         }
     }
 
@@ -1427,7 +1457,8 @@ int main(int argc, char** argv)
             }
             else
             {
-                const onnx::TensorProto& shape_tp = weights[node.input(1)];
+                auto shape_par=node.input(1);
+                const onnx::TensorProto& shape_tp = weights[shape_par];
                 const int64_t* shape_data = shape_tp.int64_data().data();
                 for (int j=0; j<shape_tp.int64_data_size(); j++)
                 {

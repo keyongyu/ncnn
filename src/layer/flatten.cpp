@@ -35,9 +35,13 @@ int Flatten::forward(const Mat& bottom_blob, Mat& top_blob, const Option& opt) c
     int w = bottom_blob.w;
     int h = bottom_blob.h;
     int channels = bottom_blob.c;
-    size_t elemsize = bottom_blob.elemsize;
     int size = w * h;
-
+#if 1
+    top_blob = bottom_blob.reshape(size*channels, opt.blob_allocator);
+    if (top_blob.empty())
+        return -100;
+#else
+    size_t elemsize = bottom_blob.elemsize;
     top_blob.create(size * channels, elemsize, opt.blob_allocator);
     if (top_blob.empty())
         return -100;
@@ -53,7 +57,7 @@ int Flatten::forward(const Mat& bottom_blob, Mat& top_blob, const Option& opt) c
             outptr[i] = ptr[i];
         }
     }
-
+#endif
     return 0;
 }
 
