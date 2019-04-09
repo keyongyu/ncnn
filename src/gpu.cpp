@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 #include "mat.h"
@@ -776,46 +777,44 @@ VulkanDevice::VulkanDevice(int device_index) : info(g_gpu_infos[device_index])
         enabledExtensions.push_back("VK_KHR_storage_buffer_storage_class");
 
     void* enabledExtensionFeatures = 0;
-    if (support_VK_KHR_get_physical_device_properties2)
+
+    // enable int8 storage
+    VkPhysicalDevice8BitStorageFeaturesKHR enabled8BitStorageFeatures;
+    enabled8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR;
+    enabled8BitStorageFeatures.pNext = 0;
+    enabled8BitStorageFeatures.storageBuffer8BitAccess = info.support_int8_storage;
+    enabled8BitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_FALSE;
+    enabled8BitStorageFeatures.storagePushConstant8 = VK_FALSE;
+    if (support_VK_KHR_get_physical_device_properties2 && info.support_VK_KHR_8bit_storage)
     {
-        // enable int8 storage
-        VkPhysicalDevice8BitStorageFeaturesKHR enabled8BitStorageFeatures;
-        enabled8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR;
-        enabled8BitStorageFeatures.pNext = 0;
-        enabled8BitStorageFeatures.storageBuffer8BitAccess = info.support_int8_storage;
-        enabled8BitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_FALSE;
-        enabled8BitStorageFeatures.storagePushConstant8 = VK_FALSE;
-        if (info.support_VK_KHR_8bit_storage)
-        {
-            enabled8BitStorageFeatures.pNext = enabledExtensionFeatures;
-            enabledExtensionFeatures = &enabled8BitStorageFeatures;
-        }
+        enabled8BitStorageFeatures.pNext = enabledExtensionFeatures;
+        enabledExtensionFeatures = &enabled8BitStorageFeatures;
+    }
 
-        // enable fp16/int16 storage
-        VkPhysicalDevice16BitStorageFeaturesKHR enabled16BitStorageFeatures;
-        enabled16BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR;
-        enabled16BitStorageFeatures.pNext = 0;
-        enabled16BitStorageFeatures.storageBuffer16BitAccess = info.support_fp16_storage;
-        enabled16BitStorageFeatures.uniformAndStorageBuffer16BitAccess = VK_FALSE;
-        enabled16BitStorageFeatures.storagePushConstant16 = VK_FALSE;
-        enabled16BitStorageFeatures.storageInputOutput16 = VK_FALSE;
-        if (info.support_VK_KHR_16bit_storage)
-        {
-            enabled16BitStorageFeatures.pNext = enabledExtensionFeatures;
-            enabledExtensionFeatures = &enabled16BitStorageFeatures;
-        }
+    // enable fp16/int16 storage
+    VkPhysicalDevice16BitStorageFeaturesKHR enabled16BitStorageFeatures;
+    enabled16BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR;
+    enabled16BitStorageFeatures.pNext = 0;
+    enabled16BitStorageFeatures.storageBuffer16BitAccess = info.support_fp16_storage;
+    enabled16BitStorageFeatures.uniformAndStorageBuffer16BitAccess = VK_FALSE;
+    enabled16BitStorageFeatures.storagePushConstant16 = VK_FALSE;
+    enabled16BitStorageFeatures.storageInputOutput16 = VK_FALSE;
+    if (support_VK_KHR_get_physical_device_properties2 && info.support_VK_KHR_16bit_storage)
+    {
+        enabled16BitStorageFeatures.pNext = enabledExtensionFeatures;
+        enabledExtensionFeatures = &enabled16BitStorageFeatures;
+    }
 
-        // enable fp16/int8 arithmetic
-        VkPhysicalDeviceFloat16Int8FeaturesKHR enabledFloat16Int8Features;
-        enabledFloat16Int8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
-        enabledFloat16Int8Features.pNext = 0;
-        enabledFloat16Int8Features.shaderFloat16 = info.support_fp16_arithmetic;
-        enabledFloat16Int8Features.shaderInt8 = info.support_int8_arithmetic;
-        if (info.support_VK_KHR_shader_float16_int8)
-        {
-            enabledFloat16Int8Features.pNext = enabledExtensionFeatures;
-            enabledExtensionFeatures = &enabledFloat16Int8Features;
-        }
+    // enable fp16/int8 arithmetic
+    VkPhysicalDeviceFloat16Int8FeaturesKHR enabledFloat16Int8Features;
+    enabledFloat16Int8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
+    enabledFloat16Int8Features.pNext = 0;
+    enabledFloat16Int8Features.shaderFloat16 = info.support_fp16_arithmetic;
+    enabledFloat16Int8Features.shaderInt8 = info.support_int8_arithmetic;
+    if (support_VK_KHR_get_physical_device_properties2 && info.support_VK_KHR_shader_float16_int8)
+    {
+        enabledFloat16Int8Features.pNext = enabledExtensionFeatures;
+        enabledExtensionFeatures = &enabledFloat16Int8Features;
     }
 
     VkDeviceQueueCreateInfo deviceQueueCreateInfos[2];
@@ -897,12 +896,50 @@ VkAllocator* VulkanDevice::staging_allocator() const
     return staging_buffer_allocator;
 }
 
+static inline bool string_ends_with_fp16s(const char* name)
+{
+    int len = strlen(name);
+    if (len < 6)
+        return false;
+
+    return memcmp(name + len - 6, "_fp16s", 6) == 0;
+}
+
+static inline bool string_ends_with_fp16a(const char* name)
+{
+    int len = strlen(name);
+    if (len < 6)
+        return false;
+
+    return memcmp(name + len - 6, "_fp16a", 6) == 0;
+}
+
 int VulkanDevice::create_shader_module()
 {
     shader_modules.resize(layer_shader_registry_entry_count, VK_NULL_HANDLE);
 
     for (int i=0; i<layer_shader_registry_entry_count; i++)
     {
+        const char* shader_name = layer_shader_registry[i].name;
+
+        if (!info.support_fp16_storage)
+        {
+            if (string_ends_with_fp16s(shader_name))
+                continue;
+
+            if (strcmp(shader_name, "cast_fp16_to_fp32") == 0 || strcmp(shader_name, "cast_fp16_to_fp32_pack4") == 0)
+                continue;
+
+            if (strcmp(shader_name, "cast_fp32_to_fp16") == 0 || strcmp(shader_name, "cast_fp32_to_fp16_pack4") == 0)
+                continue;
+        }
+
+        if (!info.support_fp16_arithmetic)
+        {
+            if (string_ends_with_fp16a(layer_shader_registry[i].name))
+                continue;
+        }
+
         VkShaderModuleCreateInfo shaderModuleCreateInfo;
         shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         shaderModuleCreateInfo.pNext = 0;
