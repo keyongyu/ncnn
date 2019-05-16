@@ -1,5 +1,5 @@
 if(ANDROID)
-
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
     get_filename_component(OPENCV_ROOT_DIR "/Users/keyong/Documents/gits/opencv.git/android_build_ndk14b/OpenCV-android-sdk/sdk/native" ABSOLUTE)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
     include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src)
@@ -122,9 +122,15 @@ if(ANDROID)
             z
             )
 else()
-    find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
-    if(NOT OpenCV_FOUND)
-        find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc)
+    if (IOS)
+        #search opencv2.framework in DMi_RnD folder
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -F/Users/keyong/Documents/gits/DMi_RnD")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework opencv2")
+    else ()
+        find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
+        if (NOT OpenCV_FOUND)
+            find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc)
+        endif ()
     endif()
 endif()
 
@@ -138,7 +144,6 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -std=c++11 -mfpu=neon")
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pie")
 
 #add_executable(squeezenet squeezenet.cpp)
 #target_link_libraries(squeezenet ${NCNN_EXAMPLE_LINK_LIBRARIES})
@@ -167,6 +172,6 @@ SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pie")
 #add_executable(shufflenetv2 shufflenetv2.cpp)
 #target_link_libraries(shufflenetv2 ${NCNN_EXAMPLE_LINK_LIBRARIES})
 
-add_executable(mobilenetv2ssdlite2 mobilenetv2ssdlite2.cpp)
+add_executable(mobilenetv2ssdlite2 mbv2ssdlite.cpp)
 target_link_libraries(mobilenetv2ssdlite2 ${NCNN_EXAMPLE_LINK_LIBRARIES})
 
