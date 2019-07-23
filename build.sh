@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 
 ##### android armv7
-mkdir -p build-android-armv7
-pushd build-android-armv7
-cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI="armeabi-v7a" -DANDROID_ARM_NEON=ON -DANDROID_PLATFORM=android-14 ..
-make -j 12
-make install
-popd
+#mkdir -p build-android-armv7
+#pushd build-android-armv7
+#cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI="armeabi-v7a" -DANDROID_ARM_NEON=ON -DANDROID_PLATFORM=android-14 ..
+##make -j 12
+#make install
+#popd
 
 ##### android aarch64
-mkdir -p build-android-aarch64
-pushd build-android-aarch64
-cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI="arm64-v8a" -DANDROID_PLATFORM=android-21 ..
-make -j 12
-make install
-popd
+#mkdir -p build-android-aarch64
+#pushd build-android-aarch64
+#cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI="arm64-v8a" -DANDROID_PLATFORM=android-21 ..
+#make -j 12
+#make install
+#popd
 
 ###### android armv7 without neon
 #mkdir -p build-android-armv7-without-neon
@@ -89,30 +89,31 @@ popd
 #popd
 
 ###### linux host system with gcc/g++
-#mkdir -p build-host-gcc-linux
-#pushd build-host-gcc-linux
-#cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/host.gcc.toolchain.cmake ..
-#make -j12
-#make install
-#popd
-
-##### ios arm64
-mkdir -p build-ios
-pushd build-ios
-cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/ios.toolchain.cmake -DPLATFORM=OS64..
+rm -fr build-host-gcc-linux
+mkdir -p build-host-gcc-linux
+pushd build-host-gcc-linux
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/host.gcc.toolchain.cmake ..
 make -j12
 make install
 popd
 
-##### ios simulator x86_64
-mkdir -p build-ios-sim
-pushd build-ios-sim
-cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/ios.toolchain.cmake -DPLATFORM=SIMULATOR64..
-make -j 12
-make install
-popd
-
-###### ios arm64 vulkan
+###### ios arm64
+#mkdir -p build-ios
+#pushd build-ios
+#cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/ios.toolchain.cmake -DPLATFORM=OS64..
+#make -j12
+#make install
+#popd
+#
+####### ios simulator x86_64
+#mkdir -p build-ios-sim
+#pushd build-ios-sim
+#cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/ios.toolchain.cmake -DPLATFORM=SIMULATOR64..
+#make -j 12
+#make install
+#popd
+#
+####### ios arm64 vulkan
 #mkdir -p build-ios-vulkan
 #pushd build-ios-vulkan
 #cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/iosxc-arm64.toolchain.cmake -DVulkan_INCLUDE_DIR=${VULKAN_SDK}/MoltenVK/include -DVulkan_LIBRARY=${VULKAN_SDK}/MoltenVK/iOS/MoltenVK.framework/MoltenVK -DNCNN_VULKAN=ON ..
@@ -121,7 +122,7 @@ popd
 #popd
 
 ##### ios simulator x86_64 vulkan
-#mkdir -p build-ios-sim-vulkan
+#jjmkdir -p build-ios-sim-vulkan
 #pushd build-ios-sim-vulkan
 #cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/iossimxc-x64.toolchain.cmake -DVulkan_INCLUDE_DIR=${VULKAN_SDK}/MoltenVK/include -DVulkan_LIBRARY=${VULKAN_SDK}/MoltenVK/iOS/MoltenVK.framework/MoltenVK -DNCNN_VULKAN=ON ..
 #make -j 12
@@ -129,12 +130,12 @@ popd
 #popd
 
 ##### MacOS
-mkdir -p build-mac
-pushd build-mac
-cmake   -DNCNN_OPENMP=OFF \
-        -DNCNN_OPENCV=ON \
-        -DNCNN_BENCHMARK=ON \
-        ..
-make -j 12
-make install
-popd
+#mkdir -p build-mac
+#pushd build-mac
+#cmake   -DNCNN_OPENMP=OFF \
+#        -DNCNN_OPENCV=ON \
+#        -DNCNN_BENCHMARK=ON \
+#        ..
+#make -j 12
+#make install
+#popd
